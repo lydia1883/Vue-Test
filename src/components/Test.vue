@@ -59,13 +59,32 @@
      
       <p>Now: "{{ now() }}"</p>
     </div>
+    <div id="demo">{{ fullName }}</div>
+
+
+    <div id="watch-example">
+      <p>
+        Ask a yes/no question:
+        <input v-model="question">
+      </p>
+      <p>{{ answer }}</p>
+    </div>
     
-    
+
+    <div class="static"
+     v-bind:class="{ active: isActive, 'text-danger': hasError }">
+    </div>
+
+    <div v-bind:class="classObject"></div>
   </div>
   
 </template>
 
+
 <script>
+
+import axios from 'axios'
+var _ = require('lodash')
 
 let appTest = {
   name: 'test',
@@ -76,11 +95,42 @@ let appTest = {
     reversedMessage: function () {
       // `this` points to the vm instance
       return this.message.split('').reverse().join('')
+    },
+    fullName: function () {
+      return this.firstName + ' ' + this.lastName
+    },
+    classObject: function () {
+      return {
+        active: this.isActive && !this.error,
+        'text-danger': this.error && this.error.type === 'fatal'
+      }
     }
   },
   methods: {
     now: function () {
       return this.date
+    },
+    getAnswer: _.debounce(
+      function () {
+        var self = this
+        if (this.question.indexOf('?') === -1) {
+          self.answer = 'Questions usually contain a question mark. ;-)'
+          return
+        }
+        self.answer = 'Thinking...'
+        axios.get('https://yesno.wtf/api').then(function (response) {
+          self.answer = _.capitalize(response.data.answer)
+        })
+        .catch(function (error) {
+          self.answer = 'Error! Could not reach the API. ' + error
+        })
+      }
+    )
+  },
+  watch: {
+    question: function (newQuestion) {
+      this.answer = 'Waiting for you stop typing...'
+      this.getAnswer()
     }
   },
   data: () => {
@@ -90,6 +140,13 @@ let appTest = {
       curTime: '页面加载于 ' + new Date(),
       seen: true,
       date: Date.now(),
+      firstName: 'Foo',
+      lastName: 'Bar',
+      question: '',
+      answer: 'I cannot give you an answer until you ask a question!',
+      isActive: true,
+      error: null,
+      hasError: false,
       url: 'https://www.google.com',
       todos: [
         { text: '学习 JavaScript' },
